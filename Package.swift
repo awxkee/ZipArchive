@@ -13,7 +13,8 @@ let package = Package(
         .macCatalyst("13.0")
     ],
     products: [
-        .library(name: "ZipArchive", type: .dynamic, targets: ["ZipArchive"]),
+        .library(name: "ZipArchive-dynamic", type: .dynamic, targets: ["ZipArchive"]),
+        .library(name: "ZipArchive", type: .static, targets: ["ZipArchive"]),
     ],
     targets: [
         .target(

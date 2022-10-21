@@ -44,6 +44,80 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
     zipFile _zip;
 }
 
+#pragma mark - Enumerate array
+
++ (NSArray*)getAllEntries:(NSString *)path password:(nullable NSString*)password error:(NSError **)error {
+    NSMutableArray* array = [[NSMutableArray alloc] init];
+    zipFile zip = unzOpen(path.fileSystemRepresentation);
+    if (zip == NULL) {
+        *error = [NSError errorWithDomain:SSZipArchiveErrorDomain
+                                     code:SSZipArchiveErrorCodeFailedOpenZipFile
+                                 userInfo:@{NSLocalizedDescriptionKey: @"failed to open zip archive"}];
+        return NULL;
+    }
+
+    int ret = unzGoToFirstFile(zip);
+    if (ret == UNZ_OK) {
+        do {
+            ret = unzOpenCurrentFile(zip);
+            if (ret != UNZ_OK) {
+                // attempting with an arbitrary password to workaround `unzOpenCurrentFile` limitation on AES encrypted files
+                if (password == NULL || password.length == 0) {
+                    ret = unzOpenCurrentFile(zip);
+                } else {
+                    ret = unzOpenCurrentFilePassword(zip, [password cStringUsingEncoding: NSUTF8StringEncoding]);
+                }
+                unzCloseCurrentFile(zip);
+                if (ret == UNZ_OK || ret == MZ_PASSWORD_ERROR) {
+                    unzClose(zip);
+                    *error = [NSError errorWithDomain:SSZipArchiveErrorDomain
+                                                 code:SSZipArchiveErrorCodeFileInfoNotLoadable
+                                             userInfo:@{NSLocalizedDescriptionKey: @"file requires password but password is invalid"}];
+                    return NULL;
+                }
+                break;
+            }
+            unz_file_info fileInfo = {};
+            char filename[256];
+            ret = unzGetCurrentFileInfo(zip, &fileInfo, &filename[0], 256, NULL, 0, NULL, 0);
+            unzCloseCurrentFile(zip);
+            BOOL passwordProtected = NO;
+            if (ret != UNZ_OK) {
+                unzClose(zip);
+                *error = [NSError errorWithDomain:SSZipArchiveErrorDomain
+                                             code:SSZipArchiveErrorCodeFileInfoNotLoadable
+                                         userInfo:@{NSLocalizedDescriptionKey: @"can't load file info"}];
+                return NULL;
+            } else if ((fileInfo.flag & MZ_ZIP_FLAG_ENCRYPTED) == 1) {
+                passwordProtected = YES;
+            }
+
+            BOOL isDirectory = NO;
+            if (filename[fileInfo.size_filename-1] == '/' || filename[fileInfo.size_filename-1] == '\\') {
+                isDirectory = YES;
+            }
+            BOOL isSymlink = _fileIsSymbolicLink(&fileInfo);
+            ZipEntryType type = ZipEntryTypeFile;
+            if (isDirectory) {
+                type = ZipEntryTypeDir;
+            } else if (isSymlink) {
+                type = ZipEntryTypeSymlink;
+            }
+            
+            ZipEntry* entry = [[ZipEntry alloc] initWith:&filename[0]
+                                          isEncrypted:passwordProtected
+                                          compressedSize:fileInfo.compressed_size
+                                          uncompressedSize:fileInfo.uncompressed_size
+                                          entryType:type];
+
+            ret = unzGoToNextFile(zip);
+        } while (ret == UNZ_OK);
+    }
+
+    unzClose(zip);
+    return array;
+}
+
 #pragma mark - Password check
 
 + (BOOL)isFilePasswordProtectedAtPath:(NSString *)path {
