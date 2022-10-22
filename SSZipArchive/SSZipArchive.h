@@ -12,6 +12,7 @@
 
 #import "SSZipCommon.h"
 #import "ZipEntry.h"
+#import "mz_compat.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

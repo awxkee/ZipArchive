@@ -1,0 +1,25 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "liblzma",
+        "repositoryURL": "https://github.com/awxkee/liblzma.swift.git",
+        "state": {
+          "branch": null,
+          "revision": "dd667f83d51ed3171c36d405992bbc406da86592",
+          "version": "1.0.0"
+        }
+      },
+      {
+        "package": "zstd",
+        "repositoryURL": "https://github.com/awxkee/zstd.swift.git",
+        "state": {
+          "branch": null,
+          "revision": "011dc05fd0b136a3d80d27c738862c641472285e",
+          "version": "1.0.0"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
