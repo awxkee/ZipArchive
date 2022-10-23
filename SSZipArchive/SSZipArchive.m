@@ -850,9 +850,6 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
             BOOL isDirectory;
             [[NSFileManager defaultManager] fileExistsAtPath:filePath isDirectory:&isDirectory];
             if (!isDirectory) {
-                return NO;
-            }
-            if (!isDirectory) {
                 success &= [zipArchive writeFile:filePath withPassword:password];
                 if (progressHandler) {
                     complete++;
