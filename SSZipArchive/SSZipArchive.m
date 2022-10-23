@@ -110,6 +110,8 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
                                           uncompressedSize:fileInfo.uncompressed_size
                                           entryType:type];
 
+            [array addObject:entry];
+
             ret = unzGoToNextFile(zip);
         } while (ret == UNZ_OK);
     }

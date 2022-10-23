@@ -10,11 +10,11 @@
 
 #import <Foundation/Foundation.h>
 
-typedef enum ZipEntryType : NSUInteger {
+typedef NS_ENUM(NSUInteger, ZipEntryType) {
     ZipEntryTypeFile,
     ZipEntryTypeDir,
     ZipEntryTypeSymlink
-} ZipEntryType;
+};
 
 @interface ZipEntry : NSObject
 
