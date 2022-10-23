@@ -847,10 +847,54 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
     if (success) {
         NSUInteger total = paths.count, complete = 0;
         for (NSString *filePath in paths) {
-            success &= [zipArchive writeFile:filePath withPassword:password];
-            if (progressHandler) {
-                complete++;
-                progressHandler(complete, total);
+            BOOL isDirectory;
+            if ([[NSFileManager defaultManager] fileExistsAtPath:filePath isDirectory:&isDirectory]) {
+                return NO;
+            }
+            if (!isDirectory) {
+                success &= [zipArchive writeFile:filePath withPassword:password];
+                if (progressHandler) {
+                    complete++;
+                    progressHandler(complete, total);
+                }
+            } else {
+                NSFileManager *fileManager = [[NSFileManager alloc] init];
+                NSDirectoryEnumerator *dirEnumerator = [fileManager enumeratorAtPath: filePath];
+                NSArray<NSString *> *allObjects = dirEnumerator.allObjects;
+                NSUInteger total = allObjects.count, complete = 0;
+                BOOL keepParentDirectory = false;
+                if (keepParentDirectory && !total) {
+                    allObjects = @[@""];
+                    total = 1;
+                }
+                for (__strong NSString *fileName in allObjects) {
+                    NSString *fullFilePath = [filePath stringByAppendingPathComponent:fileName];
+                    if ([fullFilePath isEqualToString:path]) {
+                        NSLog(@"[SSZipArchive] the archive path and the file path: %@ are the same, which is forbidden.", fullFilePath);
+                        continue;
+                    }
+
+                    if (keepParentDirectory) {
+                        fileName = [filePath.lastPathComponent stringByAppendingPathComponent:fileName];
+                    }
+
+                    BOOL isDir;
+                    [fileManager fileExistsAtPath:fullFilePath isDirectory:&isDir];
+                    if (!isDir) {
+                        // file
+                        success &= [zipArchive writeFileAtPath:fullFilePath withFileName:fileName compressionLevel: Z_DEFAULT_COMPRESSION password:password AES: false];
+                    } else {
+                        // directory
+                        if (![fileManager enumeratorAtPath:fullFilePath].nextObject) {
+                            // empty directory
+                            success &= [zipArchive writeFolderAtPath:fullFilePath withFolderName:fileName withPassword:password];
+                        }
+                    }
+                    if (progressHandler) {
+                        complete++;
+                        progressHandler(complete, total);
+                    }
+                }
             }
         }
         success &= [zipArchive close];
