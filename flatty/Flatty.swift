@@ -22,38 +22,38 @@ public class Flatty {
         mz_zip_reader_create(archiveHandle)
 
         defer {
-            if mz_zip_reader_is_open(archiveHandle) == MZ_OK {
-                mz_zip_reader_close(archiveHandle)
+            if mz_zip_reader_is_open(archiveHandle.pointee) == MZ_OK {
+                mz_zip_reader_close(archiveHandle.pointee)
             }
             mz_zip_reader_delete(archiveHandle)
         }
 
         if let password {
-            mz_zip_reader_set_password(archiveHandle, password)
+            mz_zip_reader_set_password(archiveHandle.pointee, password)
         }
 
         var result = MZ_OK
         if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path), let fileSize = attrs[.size] as? UInt64 {
             if fileSize < 20 * 1024 * 1024 {
-                result = mz_zip_reader_open_file_in_memory(archiveHandle, (url.path as NSString).fileSystemRepresentation)
+                result = mz_zip_reader_open_file_in_memory(archiveHandle.pointee, (url.path as NSString).fileSystemRepresentation)
             } else {
-                result = mz_zip_reader_open_file(archiveHandle, (url.path as NSString).fileSystemRepresentation)
+                result = mz_zip_reader_open_file(archiveHandle.pointee, (url.path as NSString).fileSystemRepresentation)
             }
         } else {
-            result = mz_zip_reader_open_file(archiveHandle, (url.path as NSString).fileSystemRepresentation)
+            result = mz_zip_reader_open_file(archiveHandle.pointee, (url.path as NSString).fileSystemRepresentation)
         }
         if result != MZ_OK {
             throw FlattyCreateStreamError()
         }
 
-        var err = mz_zip_reader_goto_first_entry(archiveHandle)
+        var err = mz_zip_reader_goto_first_entry(archiveHandle.pointee)
         if err != MZ_OK {
             throw FlattyCannotSeekToFirstEntry()
         }
         let fileInfo = UnsafeMutablePointer<UnsafeMutablePointer<mz_zip_file>?>.allocate(capacity: 1)
         defer { fileInfo.deallocate() }
         while err == MZ_OK {
-            err = mz_zip_reader_entry_get_info(archiveHandle, fileInfo)
+            err = mz_zip_reader_entry_get_info(archiveHandle.pointee, fileInfo)
             if err != MZ_OK {
                 throw FlattyReadEntryError()
             }
@@ -61,7 +61,7 @@ public class Flatty {
                 throw FlattyReadEntryError()
             }
 
-            err = mz_zip_reader_goto_next_entry(archiveHandle)
+            err = mz_zip_reader_goto_next_entry(archiveHandle.pointee)
             if err != MZ_OK && err != MZ_END_OF_LIST {
                 break
             }
@@ -72,7 +72,7 @@ public class Flatty {
 
             if files.contains(filename) {
                 let fileURL = baseURL.appendingPathComponent(filename)
-                if mz_zip_reader_entry_save_file(archiveHandle, (fileURL.path as NSString).fileSystemRepresentation) != MZ_OK {
+                if mz_zip_reader_entry_save_file(archiveHandle.pointee, (fileURL.path as NSString).fileSystemRepresentation) != MZ_OK {
                     throw FlattyExtractFileError(filename: filename, destination: fileURL)
                 }
             }
@@ -90,30 +90,31 @@ public class Flatty {
         let archiveHandle: UnsafeMutablePointer<UnsafeMutableRawPointer?> = .allocate(capacity: 1)
         mz_zip_reader_create(archiveHandle)
         defer {
-            if mz_zip_reader_close(archiveHandle) == MZ_OK {
-                mz_zip_reader_delete(archiveHandle)
+            if mz_zip_reader_is_open(archiveHandle.pointee) == MZ_OK {
+                mz_zip_reader_close(archiveHandle.pointee)
             }
+            mz_zip_reader_delete(archiveHandle)
         }
 
         if let password {
-            mz_zip_reader_set_password(archiveHandle, password)
+            mz_zip_reader_set_password(archiveHandle.pointee, password)
         }
 
         var result = MZ_OK
         if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path), let fileSize = attrs[.size] as? UInt64 {
             if fileSize < 20 * 1024 * 1024 {
-                result = mz_zip_reader_open_file_in_memory(archiveHandle, (url.path as NSString).fileSystemRepresentation)
+                result = mz_zip_reader_open_file_in_memory(archiveHandle.pointee, (url.path as NSString).fileSystemRepresentation)
             } else {
-                result = mz_zip_reader_open_file(archiveHandle, (url.path as NSString).fileSystemRepresentation)
+                result = mz_zip_reader_open_file(archiveHandle.pointee, (url.path as NSString).fileSystemRepresentation)
             }
         } else {
-            result = mz_zip_reader_open_file(archiveHandle, (url.path as NSString).fileSystemRepresentation)
+            result = mz_zip_reader_open_file(archiveHandle.pointee, (url.path as NSString).fileSystemRepresentation)
         }
         if result != MZ_OK {
             throw FlattyCreateStreamError()
         }
 
-        if mz_zip_reader_save_all(archiveHandle, (url.path as NSString).fileSystemRepresentation) != MZ_OK {
+        if mz_zip_reader_save_all(archiveHandle.pointee, (url.path as NSString).fileSystemRepresentation) != MZ_OK {
             throw FlattyExtractError()
         }
     }
@@ -125,38 +126,38 @@ public class Flatty {
         let archiveHandle: UnsafeMutablePointer<UnsafeMutableRawPointer?> = .allocate(capacity: 1)
         mz_zip_reader_create(archiveHandle)
         defer {
-            if mz_zip_reader_is_open(archiveHandle) == MZ_OK {
-                mz_zip_reader_close(archiveHandle)
+            if mz_zip_reader_is_open(archiveHandle.pointee) == MZ_OK {
+                mz_zip_reader_close(archiveHandle.pointee)
             }
             mz_zip_reader_delete(archiveHandle)
         }
 
         if let password {
-            mz_zip_reader_set_password(archiveHandle, password)
+            mz_zip_reader_set_password(archiveHandle.pointee, password)
         }
 
         var result = MZ_OK
         if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path), let fileSize = attrs[.size] as? UInt64 {
             if fileSize < 20 * 1024 * 1024 {
-                result = mz_zip_reader_open_file_in_memory(archiveHandle, (url.path as NSString).fileSystemRepresentation)
+                result = mz_zip_reader_open_file_in_memory(archiveHandle.pointee, (url.path as NSString).fileSystemRepresentation)
             } else {
-                result = mz_zip_reader_open_file(archiveHandle, (url.path as NSString).fileSystemRepresentation)
+                result = mz_zip_reader_open_file(archiveHandle.pointee, (url.path as NSString).fileSystemRepresentation)
             }
         } else {
-            result = mz_zip_reader_open_file(archiveHandle, (url.path as NSString).fileSystemRepresentation)
+            result = mz_zip_reader_open_file(archiveHandle.pointee, (url.path as NSString).fileSystemRepresentation)
         }
         if result != MZ_OK {
             throw FlattyCreateStreamError()
         }
 
-        var err = mz_zip_reader_goto_first_entry(archiveHandle)
+        var err = mz_zip_reader_goto_first_entry(archiveHandle.pointee)
         if err != MZ_OK {
             throw FlattyCannotSeekToFirstEntry()
         }
         let fileInfo = UnsafeMutablePointer<UnsafeMutablePointer<mz_zip_file>?>.allocate(capacity: 1)
         defer { fileInfo.deallocate() }
         while err == MZ_OK {
-            err = mz_zip_reader_entry_get_info(archiveHandle, fileInfo)
+            err = mz_zip_reader_entry_get_info(archiveHandle.pointee, fileInfo)
             if err != MZ_OK {
                 throw FlattyReadEntryError()
             }
@@ -167,18 +168,18 @@ public class Flatty {
 
             if encrypted {
 
-                if mz_zip_reader_entry_open(archiveHandle) != MZ_OK {
+                if mz_zip_reader_entry_open(archiveHandle.pointee) != MZ_OK {
                     return false
                 }
 
-                if mz_zip_reader_entry_close(archiveHandle) != MZ_OK {
+                if mz_zip_reader_entry_close(archiveHandle.pointee) != MZ_OK {
                     return false
                 }
 
                 return true
             }
 
-            err = mz_zip_reader_goto_next_entry(archiveHandle)
+            err = mz_zip_reader_goto_next_entry(archiveHandle.pointee)
             if err != MZ_OK && err != MZ_END_OF_LIST {
                 break
             }
@@ -194,8 +195,8 @@ public class Flatty {
         let archiveHandle: UnsafeMutablePointer<UnsafeMutableRawPointer?> = .allocate(capacity: 1)
         mz_zip_reader_create(archiveHandle)
         defer {
-            if mz_zip_reader_is_open(archiveHandle) == MZ_OK {
-                mz_zip_reader_close(archiveHandle)
+            if mz_zip_reader_is_open(archiveHandle.pointee) == MZ_OK {
+                mz_zip_reader_close(archiveHandle.pointee)
             }
             mz_zip_reader_delete(archiveHandle)
         }
@@ -203,25 +204,25 @@ public class Flatty {
         var result = MZ_OK
         if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path), let fileSize = attrs[.size] as? UInt64 {
             if fileSize < 20 * 1024 * 1024 {
-                result = mz_zip_reader_open_file_in_memory(archiveHandle, (url.path as NSString).fileSystemRepresentation)
+                result = mz_zip_reader_open_file_in_memory(archiveHandle.pointee, (url.path as NSString).fileSystemRepresentation)
             } else {
-                result = mz_zip_reader_open_file(archiveHandle, (url.path as NSString).fileSystemRepresentation)
+                result = mz_zip_reader_open_file(archiveHandle.pointee, (url.path as NSString).fileSystemRepresentation)
             }
         } else {
-            result = mz_zip_reader_open_file(archiveHandle, (url.path as NSString).fileSystemRepresentation)
+            result = mz_zip_reader_open_file(archiveHandle.pointee, (url.path as NSString).fileSystemRepresentation)
         }
         if result != MZ_OK {
             throw FlattyCreateStreamError()
         }
 
-        var err = mz_zip_reader_goto_first_entry(archiveHandle)
+        var err = mz_zip_reader_goto_first_entry(archiveHandle.pointee)
         if err != MZ_OK {
             throw FlattyCannotSeekToFirstEntry()
         }
         let fileInfo = UnsafeMutablePointer<UnsafeMutablePointer<mz_zip_file>?>.allocate(capacity: 1)
         defer { fileInfo.deallocate() }
         while err == MZ_OK {
-            err = mz_zip_reader_entry_get_info(archiveHandle, fileInfo)
+            err = mz_zip_reader_entry_get_info(archiveHandle.pointee, fileInfo)
             if err != MZ_OK {
                 throw FlattyReadEntryError()
             }
@@ -234,7 +235,7 @@ public class Flatty {
                 return true
             }
 
-            err = mz_zip_reader_goto_next_entry(archiveHandle)
+            err = mz_zip_reader_goto_next_entry(archiveHandle.pointee)
             if err != MZ_OK && err != MZ_END_OF_LIST {
                 break
             }
@@ -271,8 +272,8 @@ public class Flatty {
         let archiveHandle: UnsafeMutablePointer<UnsafeMutableRawPointer?> = .allocate(capacity: 1)
         mz_zip_reader_create(archiveHandle)
         defer {
-            if mz_zip_reader_is_open(archiveHandle) == MZ_OK {
-                mz_zip_reader_close(archiveHandle)
+            if mz_zip_reader_is_open(archiveHandle.pointee) == MZ_OK {
+                mz_zip_reader_close(archiveHandle.pointee)
             }
             mz_zip_reader_delete(archiveHandle)
         }
@@ -284,17 +285,17 @@ public class Flatty {
         var entries = [FlattyEntry]()
 
         if let password {
-            mz_zip_reader_set_password(archiveHandle, password.cString(using: .utf8))
+            mz_zip_reader_set_password(archiveHandle.pointee, password.cString(using: .utf8))
         }
 
-        var err = mz_zip_reader_goto_first_entry(archiveHandle)
+        var err = mz_zip_reader_goto_first_entry(archiveHandle.pointee)
         if err != MZ_OK {
             throw FlattyCannotSeekToFirstEntry()
         }
         let fileInfo = UnsafeMutablePointer<UnsafeMutablePointer<mz_zip_file>?>.allocate(capacity: 1)
         defer { fileInfo.deallocate() }
         while err == MZ_OK {
-            err = mz_zip_reader_entry_get_info(archiveHandle, fileInfo)
+            err = mz_zip_reader_entry_get_info(archiveHandle.pointee, fileInfo)
             if err != MZ_OK {
                 throw FlattyReadEntryError()
             }
@@ -316,7 +317,7 @@ public class Flatty {
             }
             let compressionMethod = CompressionMethod.allCases.first(where: { $0.cValue == info.compression_method }) ?? .store
             var entryType: EntryType = .file
-            if mz_zip_reader_entry_is_dir(archiveHandle) == MZ_OK {
+            if mz_zip_reader_entry_is_dir(archiveHandle.pointee) == MZ_OK {
                 entryType = .dir
             } else if info.linkname != nil, let link = String(utf8String: info.linkname), !link.isEmpty {
                 entryType = .symlink
@@ -336,7 +337,7 @@ public class Flatty {
                                        type: entryType)
             entries.append(newEntry)
 
-            err = mz_zip_reader_goto_next_entry(archiveHandle)
+            err = mz_zip_reader_goto_next_entry(archiveHandle.pointee)
             if err != MZ_OK && err != MZ_END_OF_LIST {
                 break
             }
