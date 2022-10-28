@@ -14,6 +14,14 @@ public struct FlattyInvalidURLError: LocalizedError {
     }
 }
 
+public struct FlattyCompressURLError: LocalizedError {
+    let url: URL
+    let code: Int
+    public var errorDescription: String? {
+        "Can't compress url to archive: \(url.absoluteString), with code: \(code)"
+    }
+}
+
 public struct FlattyCompressionLevelUpdateError: LocalizedError {
     public var errorDescription: String? {
         "Cannot set compression level in reading mode"
@@ -51,8 +59,9 @@ public struct FlattyCannotOpenError: LocalizedError {
 }
 
 public struct FlattyExtractError: LocalizedError {
+    let code: Int32
     public var errorDescription: String? {
-        "File extraction finished with error"
+        "File extraction finished with error: \(code)"
     }
 }
 

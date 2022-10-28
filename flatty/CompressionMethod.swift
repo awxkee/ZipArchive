@@ -11,22 +11,22 @@ import ZipArchive
 public enum CompressionMethod: Int, CaseIterable {
     case store = 0, deflate, bzip2, lzma, zstd, xz, aes
 
-    public var cValue: Int32 {
+    public var cValue: UInt16 {
         switch self {
         case .store:
-            return MZ_COMPRESS_METHOD_STORE
+            return UInt16(MZ_COMPRESS_METHOD_STORE)
         case .deflate:
-            return MZ_COMPRESS_METHOD_DEFLATE
+            return UInt16(MZ_COMPRESS_METHOD_DEFLATE)
         case .bzip2:
-            return MZ_COMPRESS_METHOD_BZIP2
+            return UInt16(MZ_COMPRESS_METHOD_BZIP2)
         case .lzma:
-            return MZ_COMPRESS_METHOD_LZMA
+            return UInt16(MZ_COMPRESS_METHOD_LZMA)
         case .zstd:
-            return MZ_COMPRESS_METHOD_ZSTD
+            return UInt16(MZ_COMPRESS_METHOD_ZSTD)
         case .xz:
-            return MZ_COMPRESS_METHOD_XZ
+            return UInt16(MZ_COMPRESS_METHOD_XZ)
         case .aes:
-            return MZ_COMPRESS_METHOD_AES
+            return UInt16(MZ_COMPRESS_METHOD_AES)
         }
     }
 }

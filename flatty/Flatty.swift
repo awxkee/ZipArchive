@@ -10,6 +10,71 @@ import ZipArchive
 
 public class Flatty {
 
+    public static func createArchive(destination: URL,
+                                     items: [URL],
+                                     password: String?,
+                                     compressionLevel: CompressionLevel = .best,
+                                     compressionMethod: CompressionMethod = .xz,
+                                     aes: Bool = false,
+                                     append: Bool = false) throws {
+        if !destination.isFileURL {
+            throw FlattyInvalidURLError(url: destination)
+        }
+        for item in items {
+            if !item.isFileURL {
+                throw FlattyInvalidURLError(url: item)
+            }
+        }
+        let archiveHandle: UnsafeMutablePointer<UnsafeMutableRawPointer?> = .allocate(capacity: 1)
+        mz_zip_writer_create(archiveHandle)
+        defer {
+            if mz_zip_writer_is_open(archiveHandle.pointee) == MZ_OK {
+                mz_zip_writer_close(archiveHandle.pointee)
+            }
+            mz_zip_writer_delete(archiveHandle)
+            archiveHandle.deallocate()
+        }
+
+        let passwordBuffer = malloc(1024)!
+        defer {
+            free(passwordBuffer)
+        }
+
+        if let password, !password.isEmpty {
+            let cString = password.utf8CString
+            _ = cString.withUnsafeBufferPointer { ptr in
+                strcpy(passwordBuffer.assumingMemoryBound(to: CChar.self), ptr.baseAddress!)
+            }
+            mz_zip_writer_set_password(archiveHandle.pointee, passwordBuffer)
+            mz_zip_writer_set_aes(archiveHandle.pointee, 0)
+        }
+        mz_zip_writer_set_compress_method(archiveHandle.pointee, compressionMethod.cValue)
+        mz_zip_writer_set_compress_level(archiveHandle.pointee, compressionLevel.cValue)
+        mz_zip_writer_set_follow_links(archiveHandle.pointee, 1)
+        mz_zip_writer_set_store_links(archiveHandle.pointee, 1)
+
+        var result = mz_zip_writer_open_file(archiveHandle.pointee,
+                                             (destination.path as NSString).fileSystemRepresentation, 0, append ? 1 : 0)
+        if result != MZ_OK {
+            throw FlattyInvalidURLError(url: destination)
+        }
+        for item in items {
+            let isDirectory = (try? item.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
+            if isDirectory {
+                result = mz_zip_writer_add_path(archiveHandle.pointee, (item.path as NSString).fileSystemRepresentation, nil, 0, 1)
+            } else {
+                result = mz_zip_writer_add_file(archiveHandle.pointee, (item.path as NSString).fileSystemRepresentation,
+                                                ((item.path as NSString).substring(from: 1) as NSString).fileSystemRepresentation)
+            }
+            if result != MZ_OK {
+                if !append {
+                    try? FileManager.default.removeItem(at: destination)
+                }
+                throw FlattyCompressURLError(url: item, code: Int(result))
+            }
+        }
+    }
+
     public static func extractFiles(url: URL, baseURL: URL, files: [String], password: String?) throws {
         if !url.isFileURL {
             throw FlattyInvalidURLError(url: url)
@@ -26,10 +91,20 @@ public class Flatty {
                 mz_zip_reader_close(archiveHandle.pointee)
             }
             mz_zip_reader_delete(archiveHandle)
+            archiveHandle.deallocate()
         }
 
-        if let password {
-            mz_zip_reader_set_password(archiveHandle.pointee, password)
+        let passwordBuffer = malloc(1024)!
+        defer {
+            free(passwordBuffer)
+        }
+
+        if let password, !password.isEmpty {
+            let cString = password.utf8CString
+            _ = cString.withUnsafeBufferPointer { ptr in
+                strcpy(passwordBuffer.assumingMemoryBound(to: CChar.self), ptr.baseAddress!)
+            }
+            mz_zip_reader_set_password(archiveHandle.pointee, passwordBuffer)
         }
 
         var result = MZ_OK
@@ -94,10 +169,20 @@ public class Flatty {
                 mz_zip_reader_close(archiveHandle.pointee)
             }
             mz_zip_reader_delete(archiveHandle)
+            archiveHandle.deallocate()
         }
 
-        if let password {
-            mz_zip_reader_set_password(archiveHandle.pointee, password)
+        let passwordBuffer = malloc(1024)!
+        defer {
+            free(passwordBuffer)
+        }
+
+        if let password, !password.isEmpty {
+            let cString = password.utf8CString
+            _ = cString.withUnsafeBufferPointer { ptr in
+                strcpy(passwordBuffer.assumingMemoryBound(to: CChar.self), ptr.baseAddress!)
+            }
+            mz_zip_reader_set_password(archiveHandle.pointee, passwordBuffer)
         }
 
         var result = MZ_OK
@@ -114,8 +199,10 @@ public class Flatty {
             throw FlattyCreateStreamError()
         }
 
-        if mz_zip_reader_save_all(archiveHandle.pointee, (url.path as NSString).fileSystemRepresentation) != MZ_OK {
-            throw FlattyExtractError()
+        let extractResult = mz_zip_reader_save_all(archiveHandle.pointee, (destination.path as NSString).fileSystemRepresentation)
+        if extractResult != MZ_OK {
+            try? FileManager.default.removeItem(at: destination)
+            throw FlattyExtractError(code: extractResult)
         }
     }
 
@@ -130,10 +217,7 @@ public class Flatty {
                 mz_zip_reader_close(archiveHandle.pointee)
             }
             mz_zip_reader_delete(archiveHandle)
-        }
-
-        if let password {
-            mz_zip_reader_set_password(archiveHandle.pointee, password)
+            archiveHandle.deallocate()
         }
 
         var result = MZ_OK
@@ -148,6 +232,19 @@ public class Flatty {
         }
         if result != MZ_OK {
             throw FlattyCreateStreamError()
+        }
+
+        let passwordBuffer = malloc(1024)!
+        defer {
+            free(passwordBuffer)
+        }
+
+        if let password, !password.isEmpty {
+            let cString = password.utf8CString
+            _ = cString.withUnsafeBufferPointer { ptr in
+                strcpy(passwordBuffer.assumingMemoryBound(to: CChar.self), ptr.baseAddress!)
+            }
+            mz_zip_reader_set_password(archiveHandle.pointee, passwordBuffer)
         }
 
         var err = mz_zip_reader_goto_first_entry(archiveHandle.pointee)
@@ -168,15 +265,15 @@ public class Flatty {
 
             if encrypted {
 
-                if mz_zip_reader_entry_open(archiveHandle.pointee) != MZ_OK {
+                let entryResult = mz_zip_reader_entry_open(archiveHandle.pointee)
+                if entryResult == MZ_PASSWORD_ERROR {
                     return false
                 }
-
-                if mz_zip_reader_entry_close(archiveHandle.pointee) != MZ_OK {
-                    return false
+                if entryResult != MZ_OK {
+                    throw FlattyInvalidURLError(url: url)
                 }
 
-                return true
+                mz_zip_reader_entry_close(archiveHandle.pointee)
             }
 
             err = mz_zip_reader_goto_next_entry(archiveHandle.pointee)
@@ -185,7 +282,7 @@ public class Flatty {
             }
         }
 
-        return false
+        return true
     }
 
     public static func isPasswordProtected(url: URL) throws -> Bool {
@@ -199,6 +296,7 @@ public class Flatty {
                 mz_zip_reader_close(archiveHandle.pointee)
             }
             mz_zip_reader_delete(archiveHandle)
+            archiveHandle.deallocate()
         }
 
         var result = MZ_OK
@@ -276,6 +374,7 @@ public class Flatty {
                 mz_zip_reader_close(archiveHandle.pointee)
             }
             mz_zip_reader_delete(archiveHandle)
+            archiveHandle.deallocate()
         }
 
         if openFc(archiveHandle) != MZ_OK {
@@ -284,8 +383,17 @@ public class Flatty {
 
         var entries = [FlattyEntry]()
 
-        if let password {
-            mz_zip_reader_set_password(archiveHandle.pointee, password.cString(using: .utf8))
+        let passwordBuffer = malloc(1024)!
+        defer {
+            free(passwordBuffer)
+        }
+
+        if let password, !password.isEmpty {
+            let cString = password.utf8CString
+            _ = cString.withUnsafeBufferPointer { ptr in
+                strcpy(passwordBuffer.assumingMemoryBound(to: CChar.self), ptr.baseAddress!)
+            }
+            mz_zip_reader_set_password(archiveHandle.pointee, passwordBuffer)
         }
 
         var err = mz_zip_reader_goto_first_entry(archiveHandle.pointee)
