@@ -15,12 +15,15 @@ let package = Package(
     products: [
         .library(name: "ZipArchive-dynamic", type: .dynamic, targets: ["ZipArchive"]),
         .library(name: "ZipArchive", type: .static, targets: ["ZipArchive"]),
+        .library(name: "Flatty-dynamic", type: .dynamic, targets: ["flatty"]),
+        .library(name: "Flatty", type: .static, targets: ["flatty"]),
     ],
     dependencies: [
         .package(url: "https://github.com/awxkee/zstd.swift.git", "1.0.0"..<"2.0.0"),
         .package(url: "https://github.com/awxkee/liblzma.swift.git", "1.0.0"..<"2.0.0")
     ],
     targets: [
+        .target(name: "flatty", dependencies: [.target(name: "ZipArchive")], path: "flatty"),
         .target(
             name: "ZipArchive",
             dependencies: ["libminizip",

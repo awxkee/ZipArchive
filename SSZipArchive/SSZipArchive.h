@@ -13,6 +13,17 @@
 #import "SSZipCommon.h"
 #import "ZipEntry.h"
 #import "mz_compat.h"
+#include "mz.h"
+#include "mz_strm.h"
+#include "mz_crypt.h"
+#include "mz_strm_buf.h"
+#include "mz_zip.h"
+#include "mz_zip_rw.h"
+#include "mz_strm_wzaes.h"
+#include "mz_strm_split.h"
+#include "mz_strm_mem.h"
+#include "mz_os.h"
+#include "mz_strm_os.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
