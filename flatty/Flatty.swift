@@ -13,9 +13,9 @@ public class Flatty {
     public static func createArchive(destination: URL,
                                      items: [URL],
                                      password: String?,
-                                     compressionLevel: CompressionLevel = .best,
-                                     compressionMethod: CompressionMethod = .xz,
-                                     aes: Bool = false,
+                                     compressionLevel: CompressionLevel = .default,
+                                     compressionMethod: CompressionMethod = .deflate,
+                                     aes: Bool = true,
                                      append: Bool = false) throws {
         if !destination.isFileURL {
             throw FlattyInvalidURLError(url: destination)
@@ -46,7 +46,7 @@ public class Flatty {
                 strcpy(passwordBuffer.assumingMemoryBound(to: CChar.self), ptr.baseAddress!)
             }
             mz_zip_writer_set_password(archiveHandle.pointee, passwordBuffer)
-            mz_zip_writer_set_aes(archiveHandle.pointee, 0)
+            mz_zip_writer_set_aes(archiveHandle.pointee, aes ? 1 : 0)
         }
         mz_zip_writer_set_compress_method(archiveHandle.pointee, compressionMethod.cValue)
         mz_zip_writer_set_compress_level(archiveHandle.pointee, compressionLevel.cValue)
